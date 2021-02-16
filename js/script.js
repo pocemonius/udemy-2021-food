@@ -100,8 +100,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
     //Modal
 
     const modalTrigger = document.querySelectorAll('[data-modal]'),
-        modal = document.querySelector('.modal'),
-        modalCloseBtn = document.querySelector('[data-close]');
+        modal = document.querySelector('.modal');
 
     function openModal(){
         modal.classList.add('show');
@@ -120,10 +119,9 @@ window.addEventListener("DOMContentLoaded", ()=>{
         item.addEventListener('click', openModal);
     });
        
-    modalCloseBtn.addEventListener('click', closeModal);
 
     modal.addEventListener('click', (e)=>{
-        if( e.target === modal ){
+        if( e.target === modal || e.target.getAttribute('data-close') == '' ){
             closeModal();
         }
     });
@@ -241,9 +239,6 @@ window.addEventListener("DOMContentLoaded", ()=>{
             statusMessage.textContent = message.loading;
             form.append(statusMessage);
 
-            const request = new XMLHttpRequest();
-            request.open('POST', 'server.php');
-            request.setRequestHeader('Content-type', 'application/json');
             const formData = new FormData(form);
 
             const object = {};
@@ -251,26 +246,100 @@ window.addEventListener("DOMContentLoaded", ()=>{
                 object[key] = value;
             });
 
-            request.send(JSON.stringify(object));
-
-            request.addEventListener('load', () => {
-                if (request.status === 200){
-                    console.log(request.response);
-                    statusMessage.textContent = message.success;
-                    form.reset();
-                    setTimeout(() => {
-                        statusMessage.remove();
-                    }, 3000);
-                } else{
-                    statusMessage.textContent = message.failure;
-                }
+            fetch('server.php', {
+                method: "POST",
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                body: JSON.stringify(object)
+            })
+            .then(data => data.text())
+            .then(data => {
+                console.log(data);
+                showThanksModal(message.success);
+                statusMessage.remove();
+            })
+            .catch(() => {
+                showThanksModal(message.failure);
+            })
+            .finally(() => {                
+                form.reset();
             });
-
-
         });
     }
 
+    function showThanksModal(message){
+        const prevModalDialog = document.querySelector('.modal__dialog');
 
+        prevModalDialog.classList.add('hide');
+        openModal();
+
+        const thanksModal = document.createElement('div');
+        thanksModal.classList.add('modal__dialog');
+        thanksModal.innerHTML = `
+            <div class="modal__content">
+                <div data-close class="modal__close">×</div>
+                <div class="modal__title">${message}</div>
+            </div>
+        `;
+
+        document.querySelector('.modal').append(thanksModal);
+        setTimeout(() => {
+            thanksModal.remove();
+            prevModalDialog.classList.remove('hide');
+            prevModalDialog.classList.add('show');
+            closeModal();
+        }, 4000);
+    }
+
+
+
+
+
+    
+
+
+
+
+
+
+
+/*
+    
+    console.log("Запрос данных...");
+
+    const req = new Promise(function(resolve, reject){
+        setTimeout(()=>{
+            console.log("Подготовка данных...");
+            let product = {
+                name: "Play Station 5",
+                price: "12000"
+            };
+            resolve(product);
+            // reject("Hell NOOOOOOooo");
+        }, 2000)
+    });
+
+    req.then((data) => {
+        return new Promise(resolve => {
+            setTimeout(()=>{
+                data.status = "Ordered";
+                console.log(data);            
+                console.log("Данные получены!");                
+                    let a = "I am alive!!!";
+                    resolve(a);                
+            }, 2000);
+        
+        });
+    }).then(data => {
+        setTimeout(() => {
+            console.log(data);
+        }, 2000);
+    }).catch((data)=>{
+        console.log(data);
+    });
+
+*/
 });
 
 
