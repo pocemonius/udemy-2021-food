@@ -184,37 +184,30 @@ window.addEventListener("DOMContentLoaded", ()=>{
         }
     }
 
-    new MenuCard(
-        "img/tabs/vegy.jpg",
-        "vegy",
-        'Меню "Фитнес"',
-        'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
-        9,
-        '.menu__field .container'
-    ).render();
-
-    new MenuCard(
-        "img/tabs/elite.jpg",
-        "elite",
-        'Меню “Премиум”',
-        'В меню “Премиум” мы используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
-        15,
-        '.menu__field .container',
-        'menu__item',
-        'test'
-    ).render();
-
-    new MenuCard(
-        "img/tabs/post.jpg",
-        "post",
-        'Меню "Постное"',
-        'Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.',
-        12,
-        '.menu__field .container',
-        'menu__item'
-    ).render();
 
 
+    const getResource = async (url) => {
+        const res = await fetch(url);
+
+        if(!res.ok){
+            throw new Error(`Could not fetch ${url}, status: ${res.status}`);
+        }
+        return await res.json();
+    };
+
+    // getResource('http://localhost:3000/menu')
+    //     .then(data => {
+    //         data.forEach( ({img, altimg, title, descr, price}) => {
+    //             new MenuCard(img, altimg, title, descr, price, '.menu__field .container' ).render();
+    //         });
+    //     });
+
+    axios.get('http://localhost:3000/menu')
+        .then(data => {
+            data.data.forEach( ({img, altimg, title, descr, price}) => {
+                new MenuCard(img, altimg, title, descr, price, '.menu__field .container' ).render();
+            });
+        });
 
     //Forms
 
@@ -227,10 +220,23 @@ window.addEventListener("DOMContentLoaded", ()=>{
     };
 
     forms.forEach(form => {
-        postData(form);
+        dindPostData(form);
     });
 
-    function postData(form){
+    const postData = async (url, data) => {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: data
+        });
+        return await res.json();
+    };
+
+
+
+    function dindPostData(form){
         form.addEventListener('submit', (e)=>{
             e.preventDefault();
 
@@ -240,20 +246,9 @@ window.addEventListener("DOMContentLoaded", ()=>{
             form.append(statusMessage);
 
             const formData = new FormData(form);
+            const json = JSON.stringify( Object.fromEntries(formData.entries()) );
 
-            const object = {};
-            formData.forEach((value, key) => {
-                object[key] = value;
-            });
-
-            fetch('server.php', {
-                method: "POST",
-                headers: {
-                    'Content-type': 'application/json'
-                },
-                body: JSON.stringify(object)
-            })
-            .then(data => data.text())
+            postData('http://localhost:3000/requests', json)
             .then(data => {
                 console.log(data);
                 showThanksModal(message.success);
@@ -294,52 +289,128 @@ window.addEventListener("DOMContentLoaded", ()=>{
 
 
 
+    // Slider
 
+    const slides = document.querySelectorAll('.offer__slide'),
+          prev = document.querySelector('.offer__slider-prev'),
+          next = document.querySelector('.offer__slider-next'),
+          total = document.querySelector('#total'),
+          current = document.querySelector('#current'),
+          slidesWrapper = document.querySelector('.offer__slider-wrapper'),
+          slidesField = document.querySelector('.offer__slider-inner'),
+          width = window.getComputedStyle(slidesWrapper).width;
+
+    let slideIndex = 1,
+        offset = 0;
+
+    slidesField.style.width = 100 * slides.length + '%';
+    slidesField.style.display = 'flex';
+    slidesField.style.transition = '.5s all';
+    slidesWrapper.style.overflow = 'hidden';
+
+
+    slides.forEach(slide => {
+        slide.style.width = width;
+    });
+
+    if(slides.length < 10){
+        total.textContent = `0${slides.length}`;
+    } else{
+        total.textContent = slides.length;
+    }
+
+    if(slideIndex < 10){
+        current.textContent = `0${slideIndex}`;
+    } else{
+        current.textContent = slideIndex;
+    }
+
+
+    next.addEventListener('click', () => {
+        if(offset == parseInt(width)*(slides.length - 1)){
+            offset = 0;
+        } else{
+            offset += parseInt(width);
+        }
+
+        slidesField.style.transform = `translateX(-${offset}px)`;
+
+        if(slideIndex  == slides.length){
+            slideIndex = 1;
+        } else{
+            slideIndex++;
+        }
+
+        if(slideIndex < 10){
+            current.textContent = `0${slideIndex}`;
+        } else{
+            current.textContent = slideIndex;
+        }
+    });
+
+    prev.addEventListener('click', () => {
+        if(offset == 0){
+            offset = parseInt(width)*(slides.length - 1)
+        } else{
+            offset -= parseInt(width);
+        }
+
+        slidesField.style.transform = `translateX(-${offset}px)`;
+
+        if(slideIndex == 1){            
+            slideIndex  = slides.length;
+        } else{
+            slideIndex--;
+        }
+
+        if(slideIndex < 10){
+            current.textContent = `0${slideIndex}`;
+        } else{
+            current.textContent = slideIndex;
+        }
+    });
+
+
+    // showSlides(1);
+    
+    // if(slides.length < 10){
+    //     total.textContent = `0${slides.length}`;
+    // } else{
+    //     total.textContent = slides.length;
+    // }
+
+    // function showSlides(n) {
+    //     if (n > slides.length){
+    //         slideIndex = 1;
+    //     }
+    //     if(n < 1){
+    //         slideIndex = slides.length;
+    //     }
+
+    //     slides.forEach(item => item.style.display = 'none');
+    //     slides[slideIndex - 1].style.display = 'block';
+
+    //     if(slideIndex < 10){
+    //         current.textContent = `0${slideIndex}`;
+    //     } else{
+    //         current.textContent = slideIndex;
+    //     }
+    // }
+
+    // function plusSlides(n){
+    //     showSlides(slideIndex += n);
+    // }
+
+    // prev.addEventListener('click', () => {
+    //     plusSlides(-1);
+    // });
+
+    // next.addEventListener('click', () => {
+    //     plusSlides(1);
+    // });
 
     
 
-
-
-
-
-
-
-/*
-    
-    console.log("Запрос данных...");
-
-    const req = new Promise(function(resolve, reject){
-        setTimeout(()=>{
-            console.log("Подготовка данных...");
-            let product = {
-                name: "Play Station 5",
-                price: "12000"
-            };
-            resolve(product);
-            // reject("Hell NOOOOOOooo");
-        }, 2000)
-    });
-
-    req.then((data) => {
-        return new Promise(resolve => {
-            setTimeout(()=>{
-                data.status = "Ordered";
-                console.log(data);            
-                console.log("Данные получены!");                
-                    let a = "I am alive!!!";
-                    resolve(a);                
-            }, 2000);
-        
-        });
-    }).then(data => {
-        setTimeout(() => {
-            console.log(data);
-        }, 2000);
-    }).catch((data)=>{
-        console.log(data);
-    });
-
-*/
 });
 
 
